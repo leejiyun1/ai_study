@@ -2,11 +2,46 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useState } from 'react'
+import { fetchSummaries, fetchSummaryDetail, getSummaryDownloadUrl } from '@/lib/api'
+import { useEffect, useMemo, useState } from 'react'
 
 function SearchPage() {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState([])
+  const [items, setItems] = useState([])
+  const [selectedSummary, setSelectedSummary] = useState('')
+  const [error, setError] = useState('')
+
+  const loadSummaries = async () => {
+    try {
+      setError('')
+      const data = await fetchSummaries()
+      setItems(data)
+    } catch (e) {
+      setError(`조회 실패: ${e.message}`)
+    }
+  }
+
+  const handleView = async (id) => {
+    try {
+      setError('')
+      const detail = await fetchSummaryDetail(id)
+      setSelectedSummary(detail.summary || '(요약 없음)')
+    } catch (e) {
+      setError(`상세 조회 실패: ${e.message}`)
+    }
+  }
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return items
+    return items.filter((item) => (
+      `${item.title || ''} ${item.filename || ''}`.toLowerCase().includes(q)
+    ))
+  }, [items, query])
+
+  useEffect(() => {
+    loadSummaries()
+  }, [])
 
   return (
     <div className="flex flex-col gap-4 w-full">
@@ -18,7 +53,7 @@ function SearchPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             />
-            <Button variant="outline">검색</Button>
+            <Button variant="outline" onClick={loadSummaries}>새로고침</Button>
         </div>
 
       {/* 검색 결과 테이블 */}
@@ -32,19 +67,21 @@ function SearchPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {results.map((item, index) => (
-            <TableRow key={index}>
-              <TableCell>{item.title}</TableCell>
+          {filtered.map((item) => (
+            <TableRow key={item.id}>
+              <TableCell>{item.title || '-'}</TableCell>
               <TableCell>{item.filename}</TableCell>
-              <TableCell>{item.date}</TableCell>
+              <TableCell>{new Date(item.created_at).toLocaleString()}</TableCell>
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">액션</Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem>보기</DropdownMenuItem>
-                    <DropdownMenuItem>다운로드</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleView(item.id)}>보기</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open(getSummaryDownloadUrl(item.id), '_blank')}>
+                      다운로드
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -52,6 +89,12 @@ function SearchPage() {
           ))}
         </TableBody>
       </Table>
+      {error && <p className="text-sm text-red-500">{error}</p>}
+      {selectedSummary && (
+        <div className="rounded-md border p-3 text-sm whitespace-pre-wrap">
+          {selectedSummary}
+        </div>
+      )}
 
     </div>
   )

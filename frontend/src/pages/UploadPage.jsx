@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
+import { summarizeBatch } from '@/lib/api'
 import { IconCloud } from '@tabler/icons-react'
 import { useRef, useState } from 'react'
 
@@ -8,7 +9,29 @@ function UploadPage() {
   const [files, setFiles] = useState([])
   const [progress, setProgress] = useState(0)
   const [uploading, setUploading] = useState(false)
+  const [message, setMessage] = useState('')
   const inputRef = useRef(null)
+
+  const handleUpload = async () => {
+    if (files.length === 0 || uploading) return
+
+    try {
+      setUploading(true)
+      setProgress(20)
+      const result = await summarizeBatch(files)
+      setProgress(100)
+
+      const completed = result.results.filter((item) => item.status === 'COMPLETED').length
+      const failed = result.results.filter((item) => item.status === 'FAILED').length
+      setMessage(`완료 ${completed}건 / 실패 ${failed}건`)
+      setFiles([])
+    } catch (error) {
+      setMessage(`업로드 실패: ${error.message}`)
+    } finally {
+      setUploading(false)
+      setTimeout(() => setProgress(0), 600)
+    }
+  }
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
@@ -47,7 +70,10 @@ function UploadPage() {
       {uploading && <Progress value={progress} />}
 
       {/* 업로드 버튼 */}
-      <Button variant="outline" disabled={files.length === 0 || uploading}>업로드</Button>
+      <Button variant="outline" disabled={files.length === 0 || uploading} onClick={handleUpload}>
+        업로드
+      </Button>
+      {message && <p className="text-sm text-muted-foreground">{message}</p>}
     </div>
   )
 }
