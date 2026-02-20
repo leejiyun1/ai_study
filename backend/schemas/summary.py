@@ -1,5 +1,5 @@
 # [Schema] 요청/응답 데이터 형식 정의 - Pydantic 모델
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import List, Optional
 
@@ -27,8 +27,7 @@ class SummaryListItemResponse(BaseModel):
     created_at: datetime
 
     # [config] ORM 모델과 연동 설정
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # [class] 요약 상세 응답
@@ -42,5 +41,4 @@ class SummaryResponse(BaseModel):
     created_at: datetime
 
     # [config] ORM 모델과 연동 설정
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
