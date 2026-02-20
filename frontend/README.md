@@ -1,16 +1,47 @@
-# React + Vite
+# Frontend (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 1. 개요
+- 백엔드 `/api` 엔드포인트와 연동되는 프론트 UI
+- 주요 화면:
+  - 업로드 (`/upload`)
+  - 검색/조회 (`/search`)
 
-Currently, two official plugins are available:
+## 2. 실행
+```bash
+cd /Users/ijiyun/mini-project/frontend
+npm install
+cp .env.example .env
+npm run dev
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+기본 접속:
+- `http://127.0.0.1:5173`
 
-## React Compiler
+## 3. 환경 변수
+`.env`:
+```env
+VITE_API_BASE_URL=/api
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 4. 개발 프록시
+Vite dev server에서 `/api` 요청은 백엔드로 프록시된다.
 
-## Expanding the ESLint configuration
+```js
+server: {
+  proxy: {
+    '/api': {
+      target: 'http://127.0.0.1:8000',
+      changeOrigin: true,
+    },
+  },
+}
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 5. 백엔드 연동 포인트
+- `POST /api/summarize/batch`
+- `GET /api/summaries`
+- `GET /api/summaries/{id}`
+- `GET /api/summaries/{id}/download`
+
+## 6. 참고
+- 로컬에서 백엔드가 먼저 실행되어 있어야 업로드/조회가 정상 동작한다.
