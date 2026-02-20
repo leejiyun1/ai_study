@@ -112,3 +112,16 @@ backend/
 cd /Users/ijiyun/mini-project/backend
 python3 -m compileall .
 ```
+
+## 10. API 스모크 테스트
+```bash
+cd /Users/ijiyun/mini-project/backend
+PYTHONPATH=/Users/ijiyun/mini-project/backend /opt/homebrew/Caskroom/miniconda/base/envs/mini-project/bin/python scripts/smoke_test_api.py
+```
+
+정상일 때 확인 포인트:
+- `LIST_STATUS 200`
+- `BATCH_FAIL_STATUS 200` + `INVALID_FILE`
+- `BATCH_OK_STATUS 200` + `COMPLETED`
+- `DETAIL_STATUS 200`
+- `DOWNLOAD_STATUS 200`
