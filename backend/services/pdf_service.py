@@ -1,7 +1,42 @@
 # [Service] PDF 텍스트 추출 로직
+import os
 import PyPDF2
 from io import BytesIO
 from typing import List
+
+try:
+    import pytesseract
+    from pdf2image import convert_from_bytes
+except ImportError:
+    pytesseract = None
+    convert_from_bytes = None
+
+# [env] OCR 설정
+OCR_ENABLED = os.getenv("OCR_ENABLED", "true").lower() == "true"
+OCR_LANG = os.getenv("OCR_LANG", "kor+eng")
+OCR_DPI = int(os.getenv("OCR_DPI", "200"))
+OCR_MIN_TEXT_LENGTH = int(os.getenv("OCR_MIN_TEXT_LENGTH", "300"))
+
+
+# [function] 공백 정규화
+def _normalize_text(text: str) -> str:
+    return " ".join((text or "").split())
+
+
+# [function] OCR 기반 텍스트 추출
+def _extract_text_with_ocr(file_bytes: bytes) -> str:
+    if not OCR_ENABLED:
+        return ""
+    if pytesseract is None or convert_from_bytes is None:
+        return ""
+
+    images = convert_from_bytes(file_bytes, dpi=OCR_DPI)
+    ocr_texts = []
+    for image in images:
+        text = pytesseract.image_to_string(image, lang=OCR_LANG)
+        ocr_texts.append(text)
+    return _normalize_text("\n".join(ocr_texts))
+
 
 # [function] PDF 파일에서 텍스트 추출 후 반환
 async def extract_text(file, max_file_size_bytes: int | None = None) -> str:
@@ -28,9 +63,16 @@ async def extract_text(file, max_file_size_bytes: int | None = None) -> str:
     except Exception as exc:
         raise ValueError("PDF_PARSE_FAILED") from exc
 
-    # [normalize] 공백 정리 후 반환
+    # [normalize] 1차(PyPDF2) 텍스트 정리
     joined_text = "\n".join(pages_text)
-    normalized = " ".join(joined_text.split())
+    normalized = _normalize_text(joined_text)
+
+    # [fallback] 텍스트가 부족하면 OCR 보조 추출
+    if len(normalized) < OCR_MIN_TEXT_LENGTH:
+        ocr_text = _extract_text_with_ocr(file_bytes)
+        if len(ocr_text) > len(normalized):
+            normalized = ocr_text
+
     if not normalized:
         raise ValueError("PDF_PARSE_FAILED")
     return normalized

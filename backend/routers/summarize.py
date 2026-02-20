@@ -1,5 +1,6 @@
 # [Router] 엔드포인트 정의 및 서비스 호출
 import json
+import logging
 import os
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
@@ -8,9 +9,11 @@ from database import get_db
 from models.summary import Summary, DocumentChunk
 from schemas.summary import BatchResponse, SummaryListItemResponse, SummaryResponse
 from services import pdf_service, llm_service
+from services.llm_service import GeminiServiceError
 
 # [instance] 라우터 인스턴스 생성
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # [const] 외부 노출 허용 에러 코드
 ALLOWED_ERROR_CODES = {
@@ -99,6 +102,19 @@ async def summarize_batch(files: list[UploadFile] = File(...), db: Session = Dep
             )
         except Exception as exc:
             error_code = normalize_error_code(exc)
+            if isinstance(exc, GeminiServiceError):
+                logger.warning(
+                    "Gemini failed for document_id=%s filename=%s detail=%s",
+                    document.id,
+                    document.original_filename,
+                    exc.detail,
+                )
+            else:
+                logger.exception(
+                    "Pipeline failed for document_id=%s filename=%s",
+                    document.id,
+                    document.original_filename,
+                )
             db.rollback()
             failed_doc = db.query(Summary).filter(Summary.id == document.id).first()
             if failed_doc:

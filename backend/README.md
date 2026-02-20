@@ -48,6 +48,7 @@ DATABASE_URL=mysql+pymysql://mini:mini1234!@127.0.0.1:3306/mini_project?charset=
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL_SUMMARY=gemini-2.0-flash
 GEMINI_MODEL_EMBEDDING=text-embedding-004
+SUMMARY_MAX_CHARS=40000
 MAX_UPLOAD_FILES=10
 MAX_FILE_SIZE_MB=20
 CHUNK_SIZE=1200
