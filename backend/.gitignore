@@ -1,0 +1,24 @@
+# 가상환경
+venv/
+env/
+.env
+
+# conda
+.conda/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 업로드 파일
+uploads/
+
+# 로그
+*.log
