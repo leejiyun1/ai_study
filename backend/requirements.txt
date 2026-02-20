@@ -2,7 +2,6 @@ fastapi
 uvicorn
 python-multipart
 PyPDF2
-openai
 sqlalchemy
 pymysql
 python-dotenv
