@@ -4,12 +4,14 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { fetchSummaries, fetchSummaryDetail, getSummaryDownloadUrl } from '@/lib/api'
 import { useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
 function SearchPage() {
   const [query, setQuery] = useState('')
   const [items, setItems] = useState([])
   const [selectedSummary, setSelectedSummary] = useState('')
   const [error, setError] = useState('')
+  const location = useLocation()
 
   const loadSummaries = async () => {
     try {
@@ -41,7 +43,7 @@ function SearchPage() {
 
   useEffect(() => {
     loadSummaries()
-  }, [])
+  }, [location.state?.refreshAt])
 
   return (
     <div className="flex flex-col gap-4 w-full">

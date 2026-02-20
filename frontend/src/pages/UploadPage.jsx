@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress'
 import { summarizeBatch } from '@/lib/api'
 import { IconCloud } from '@tabler/icons-react'
 import { useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 function UploadPage() {
   const [files, setFiles] = useState([])
@@ -11,6 +12,7 @@ function UploadPage() {
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
   const inputRef = useRef(null)
+  const navigate = useNavigate()
 
   const handleUpload = async () => {
     if (files.length === 0 || uploading) return
@@ -25,6 +27,11 @@ function UploadPage() {
       const failed = result.results.filter((item) => item.status === 'FAILED').length
       setMessage(`완료 ${completed}건 / 실패 ${failed}건`)
       setFiles([])
+      if (completed > 0) {
+        setTimeout(() => {
+          navigate('/search', { state: { refreshAt: Date.now() } })
+        }, 500)
+      }
     } catch (error) {
       setMessage(`업로드 실패: ${error.message}`)
     } finally {
