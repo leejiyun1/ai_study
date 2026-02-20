@@ -4,7 +4,7 @@ from io import BytesIO
 from typing import List
 
 # [function] PDF 파일에서 텍스트 추출 후 반환
-async def extract_text(file) -> str:
+async def extract_text(file, max_file_size_bytes: int | None = None) -> str:
     # [validation] 파일 기본 검증
     if not file or not file.filename:
         raise ValueError("INVALID_FILE")
@@ -14,6 +14,8 @@ async def extract_text(file) -> str:
     # [read] 업로드 파일 바이트 읽기
     file_bytes = await file.read()
     if not file_bytes:
+        raise ValueError("INVALID_FILE")
+    if max_file_size_bytes is not None and len(file_bytes) > max_file_size_bytes:
         raise ValueError("INVALID_FILE")
 
     # [parse] 페이지별 텍스트 추출

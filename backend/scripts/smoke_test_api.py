@@ -22,10 +22,10 @@ def run_smoke_test() -> int:
         original_embed = summarize_router.llm_service.embed_chunks
         original_summarize = summarize_router.llm_service.summarize
 
-        async def fake_extract(_file):
+        async def fake_extract(_file, max_file_size_bytes=None):
             return "테스트 원문 텍스트입니다."
 
-        def fake_split(_text):
+        def fake_split(_text, chunk_size=1200, overlap=200):
             return ["테스트 원문", "텍스트입니다"]
 
         async def fake_embed(_chunks):

@@ -1,5 +1,6 @@
 # [Router] 엔드포인트 정의 및 서비스 호출
 import json
+import os
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
@@ -19,6 +20,12 @@ ALLOWED_ERROR_CODES = {
     "DB_ERROR",
 }
 
+# [const] 배치/파일/청킹 설정값
+MAX_UPLOAD_FILES = int(os.getenv("MAX_UPLOAD_FILES", "10"))
+MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "20"))
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1200"))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
+
 
 # [function] 예외를 표준 에러 코드로 정규화
 def normalize_error_code(exc: Exception) -> str:
@@ -32,6 +39,8 @@ def normalize_error_code(exc: Exception) -> str:
 @router.post("/summarize/batch", response_model=BatchResponse)
 async def summarize_batch(files: list[UploadFile] = File(...), db: Session = Depends(get_db)):
     if not files:
+        raise HTTPException(status_code=400, detail="INVALID_FILE")
+    if len(files) > MAX_UPLOAD_FILES:
         raise HTTPException(status_code=400, detail="INVALID_FILE")
 
     results = []
@@ -48,8 +57,15 @@ async def summarize_batch(files: list[UploadFile] = File(...), db: Session = Dep
 
         try:
             # [pipeline] 텍스트 추출 -> 청킹 -> 임베딩 -> 요약
-            text = await pdf_service.extract_text(file)
-            chunks = pdf_service.split_text_into_chunks(text)
+            text = await pdf_service.extract_text(
+                file,
+                max_file_size_bytes=MAX_FILE_SIZE_MB * 1024 * 1024,
+            )
+            chunks = pdf_service.split_text_into_chunks(
+                text,
+                chunk_size=CHUNK_SIZE,
+                overlap=CHUNK_OVERLAP,
+            )
             vectors = await llm_service.embed_chunks(chunks)
             summary_result = await llm_service.summarize(text)
 
