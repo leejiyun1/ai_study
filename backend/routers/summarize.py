@@ -11,6 +11,23 @@ from services import pdf_service, llm_service
 # [instance] 라우터 인스턴스 생성
 router = APIRouter()
 
+# [const] 외부 노출 허용 에러 코드
+ALLOWED_ERROR_CODES = {
+    "INVALID_FILE",
+    "PDF_PARSE_FAILED",
+    "GEMINI_FAILED",
+    "DB_ERROR",
+}
+
+
+# [function] 예외를 표준 에러 코드로 정규화
+def normalize_error_code(exc: Exception) -> str:
+    code = str(exc).strip()
+    if code in ALLOWED_ERROR_CODES:
+        return code
+    return "DB_ERROR"
+
+
 # [POST] PDF 다중 업로드 및 순차 요약 요청
 @router.post("/summarize/batch", response_model=BatchResponse)
 async def summarize_batch(files: list[UploadFile] = File(...), db: Session = Depends(get_db)):
@@ -65,18 +82,19 @@ async def summarize_batch(files: list[UploadFile] = File(...), db: Session = Dep
                 }
             )
         except Exception as exc:
+            error_code = normalize_error_code(exc)
             db.rollback()
             failed_doc = db.query(Summary).filter(Summary.id == document.id).first()
             if failed_doc:
                 failed_doc.status = "FAILED"
-                failed_doc.error_message = str(exc)
+                failed_doc.error_message = error_code
                 db.commit()
             results.append(
                 {
                     "document_id": document.id,
                     "filename": document.original_filename,
                     "status": "FAILED",
-                    "message": str(exc),
+                    "message": error_code,
                 }
             )
 
