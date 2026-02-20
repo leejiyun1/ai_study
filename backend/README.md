@@ -129,3 +129,17 @@ PYTHONPATH=/Users/ijiyun/mini-project/backend /opt/homebrew/Caskroom/miniconda/b
 - `BATCH_OK_STATUS 200` + `COMPLETED`
 - `DETAIL_STATUS 200`
 - `DOWNLOAD_STATUS 200`
+
+## 11. 통합 점검 순서
+1. 백엔드 컴파일 확인
+```bash
+cd /Users/ijiyun/mini-project/backend
+python3 -m compileall .
+```
+2. 백엔드 API 스모크 테스트
+```bash
+cd /Users/ijiyun/mini-project/backend
+PYTHONPATH=/Users/ijiyun/mini-project/backend /opt/homebrew/Caskroom/miniconda/base/envs/mini-project/bin/python scripts/smoke_test_api.py
+```
+3. 프론트 QA 체크리스트 수행
+- 문서: `/Users/ijiyun/mini-project/frontend/QA_CHECKLIST.md`
