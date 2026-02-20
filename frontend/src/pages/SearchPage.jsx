@@ -3,12 +3,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { fetchSummaries, fetchSummaryDetail, getSummaryDownloadUrl } from '@/lib/api'
+import { MoreHorizontal } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
 function SearchPage() {
   const [query, setQuery] = useState('')
   const [items, setItems] = useState([])
+  const [selectedTitle, setSelectedTitle] = useState('')
   const [selectedSummary, setSelectedSummary] = useState('')
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
@@ -29,6 +31,7 @@ function SearchPage() {
     try {
       setError('')
       const detail = await fetchSummaryDetail(id)
+      setSelectedTitle(detail.title || '(제목 없음)')
       setSelectedSummary(detail.summary || '(요약 없음)')
     } catch (e) {
       setError(`상세 조회 실패: ${e.message}`)
@@ -84,7 +87,7 @@ function SearchPage() {
             <TableHead>제목</TableHead>
             <TableHead>파일명</TableHead>
             <TableHead>날짜</TableHead>
-            <TableHead>액션</TableHead>
+            <TableHead></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -104,9 +107,12 @@ function SearchPage() {
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">액션</Button>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent>
+                  <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => handleView(item.id)}>보기</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => window.open(getSummaryDownloadUrl(item.id), '_blank')}>
                       다운로드
@@ -141,9 +147,13 @@ function SearchPage() {
       </div>
       {error && <p className="text-sm text-red-500">{error}</p>}
       {selectedSummary && (
-        <div className="rounded-md border p-3 text-sm whitespace-pre-wrap">
-          {selectedSummary}
-        </div>
+        <>
+          <h2 className="text-center text-2xl font-bold">요약본</h2>
+          <div className="rounded-md border p-3 text-sm whitespace-pre-wrap">
+            <h3 className="mb-2 text-base font-semibold">{selectedTitle}</h3>
+            {selectedSummary}
+          </div>
+        </>
       )}
 
     </div>
