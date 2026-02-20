@@ -48,16 +48,6 @@ async def summarize_batch(files: list[UploadFile] = File(...), db: Session = Dep
 
     results = []
     for file in files:
-        # [create] 문서 레코드 선생성 (PENDING)
-        document = Summary(
-            original_filename=file.filename or "",
-            original_text="",
-            status="PENDING",
-        )
-        db.add(document)
-        db.commit()
-        db.refresh(document)
-
         try:
             # [pipeline] 텍스트 추출 -> 청킹 -> 임베딩 -> 요약
             text = await pdf_service.extract_text(
@@ -72,15 +62,19 @@ async def summarize_batch(files: list[UploadFile] = File(...), db: Session = Dep
             vectors = await llm_service.embed_chunks(chunks)
             summary_result = await llm_service.summarize(text)
 
-            # [save] 문서 본문/요약 저장
-            document.original_text = text
-            document.summary_title = summary_result["title"]
-            document.summary_text = summary_result["summary"]
-            document.status = "COMPLETED"
-            document.error_message = None
+            # [save] 성공 시에만 문서 레코드 저장
+            document = Summary(
+                original_filename=file.filename or "",
+                original_text=text,
+                summary_title=summary_result["title"],
+                summary_text=summary_result["summary"],
+                status="COMPLETED",
+                error_message=None,
+            )
+            db.add(document)
+            db.flush()
 
-            # [save] 기존 청크 정리 후 재저장
-            db.query(DocumentChunk).filter(DocumentChunk.document_id == document.id).delete()
+            # [save] 청크/임베딩 저장
             for idx, (chunk_text, embedding) in enumerate(zip(chunks, vectors)):
                 db.add(
                     DocumentChunk(
@@ -92,10 +86,11 @@ async def summarize_batch(files: list[UploadFile] = File(...), db: Session = Dep
                 )
 
             db.commit()
+            db.refresh(document)
             results.append(
                 {
                     "document_id": document.id,
-                    "filename": document.original_filename,
+                    "filename": file.filename or "",
                     "status": "COMPLETED",
                     "message": "processed",
                 }
@@ -104,27 +99,20 @@ async def summarize_batch(files: list[UploadFile] = File(...), db: Session = Dep
             error_code = normalize_error_code(exc)
             if isinstance(exc, GeminiServiceError):
                 logger.warning(
-                    "Gemini failed for document_id=%s filename=%s detail=%s",
-                    document.id,
-                    document.original_filename,
+                    "Gemini failed for filename=%s detail=%s",
+                    file.filename or "",
                     exc.detail,
                 )
             else:
                 logger.exception(
-                    "Pipeline failed for document_id=%s filename=%s",
-                    document.id,
-                    document.original_filename,
+                    "Pipeline failed for filename=%s",
+                    file.filename or "",
                 )
             db.rollback()
-            failed_doc = db.query(Summary).filter(Summary.id == document.id).first()
-            if failed_doc:
-                failed_doc.status = "FAILED"
-                failed_doc.error_message = error_code
-                db.commit()
             results.append(
                 {
-                    "document_id": document.id,
-                    "filename": document.original_filename,
+                    "document_id": 0,
+                    "filename": file.filename or "",
                     "status": "FAILED",
                     "message": error_code,
                 }
